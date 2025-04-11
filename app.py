@@ -2,35 +2,32 @@
 import streamlit as st
 import pandas as pd
 import fitz  # PyMuPDF
-import io
 
 st.set_page_config(page_title="Conversor de Sobras", layout="centered")
 st.title("🔧 Conversor de Sobras para CSV Padronizado")
 st.markdown("Envie o PDF com as sobras e o CSV base para gerar o novo arquivo padronizado.")
 
-# Função para extrair linhas do PDF
 def extrair_linhas_pdf(pdf_file):
     doc = fitz.open(stream=pdf_file.read(), filetype="pdf")
     linhas_extraidas = []
     for page in doc:
         texto = page.get_text()
         for linha in texto.split("\n"):
-            if any(palavra in linha for palavra in ["MDP", "MDF"]):
-                partes = linha.split()
-                if len(partes) >= 5:
+            if linha.startswith("MDP") or linha.startswith("MDF"):
+                try:
+                    partes = linha.strip().split()
                     tipo = partes[0]
-                    cor = ' '.join(partes[2:-3])
-                    esp = partes[1].replace('mm', '').replace('MM', '').strip()
-                    largura = partes[-3].replace('.', '').replace(',', '.')
-                    profundidade = partes[-2].replace('.', '').replace(',', '.')
-                    try:
-                        esp_float = float(esp)
-                        larg = int(float(largura))
-                        prof = int(float(profundidade))
-                        item = f"{tipo} - {cor} {esp_float}mm,L,{larg},{prof},{esp_float},8,8,,1"
-                        linhas_extraidas.append(item)
-                    except:
-                        pass
+                    espessura = partes[3].replace('mm', '')
+                    cor = ' '.join(partes[2:3])
+                    largura = partes[-2].replace('.', '').replace(',', '.')
+                    profundidade = partes[-1].replace('.', '').replace(',', '.')
+                    esp_float = float(espessura)
+                    larg = int(float(largura))
+                    prof = int(float(profundidade))
+                    item = f"{tipo} - {cor} {esp_float}mm,L,{larg},{prof},{esp_float},8,8,,1"
+                    linhas_extraidas.append(item)
+                except:
+                    pass
     return linhas_extraidas
 
 # Upload dos arquivos
